@@ -1,7 +1,5 @@
 #include "stdafx.h"
 
-#include <array>
-
 #include "cdll_int.h"
 #include "color.h"
 #include "convar.h"
@@ -10,30 +8,6 @@
 #include <hooks.h>
 
 using namespace std::literals::string_literals;
-
-struct IpAddressInfo
-{
-	std::string szIpAddress;
-	uint16_t iPort;
-};
-
-HOOK_DETOUR_DECLARE(hkGetServerIpAddressInfo);
-
-//
-// Allows the user to choose a specific master server's IP address and/or port
-// number through command line arguments. Defaults to 127.0.0.1:30001 if no
-// arguments are given Usage: "-masterip [desired master IP address]" and/or
-// "-masterport [desired master port number]"
-//
-NOINLINE void __fastcall hkGetServerIpAddressInfo(IpAddressInfo& info)
-{
-	const char* szMasterIp = CommandLine()->ParmValue("-masterip");
-	const char* szMasterPort = CommandLine()->ParmValue("-masterport");
-
-	info.szIpAddress = szMasterIp ? szMasterIp : "127.0.0.1"s;
-	info.iPort =
-		szMasterPort ? static_cast<uint16_t>(atoi(szMasterPort)) : 30001;
-}
 
 HOOK_DETOUR_DECLARE(hkCon_ColorPrint);
 NOINLINE void __fastcall hkCon_ColorPrint(Color &clr, const char *msg)
@@ -184,8 +158,6 @@ void BytePatchEngine(const uintptr_t dwEngineBase)
 	WriteProtectedMemory(canCheatPatch2, (dwEngineBase + 0x19F4D2));
 }
 
-static IVEngineClient* g_pEngineClient = nullptr;
-
 #pragma optimize( "", off )
 void PatchCSO2_Engine(uintptr_t dwEngineBase)
 {
@@ -194,11 +166,10 @@ void PatchCSO2_Engine(uintptr_t dwEngineBase)
 	if (loaded)
 		return;
 
-	g_pImports->Print("Appling engine patches. ");
+	g_pImports->Print("Main Patch - Appling engine patches. ");
 
 	BytePatchEngine(dwEngineBase);
 
-	HOOK_DETOUR(dwEngineBase + 0x285FE0, hkGetServerIpAddressInfo);
 	HOOK_DETOUR(dwEngineBase + 0x1C4B40, hkCon_ColorPrint);
 	HOOK_DETOUR(dwEngineBase + 0xCE8B0, hkCanCheat);
 

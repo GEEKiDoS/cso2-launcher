@@ -104,7 +104,7 @@ void PatchCSO2_VGUI2(uintptr_t dwVguiBase)
 	if (loaded)
 		return;
 
-	g_pImports->Print("Main Patch - Appling engine patches. ");
+	g_pImports->Print("Appling engine patches. ");
 	HOOK_DETOUR(dwVguiBase + 0xB3F0, hkWideCharToUtf8);
 	HOOK_DETOUR(dwVguiBase + 0xB420, hkUtf8ToLocal);
 	HOOK_DETOUR(dwVguiBase + 0xB4A0, hkLocalToUtf8);
