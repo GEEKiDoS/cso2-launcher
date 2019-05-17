@@ -16,9 +16,5 @@ cmake -G "Visual Studio 15 2017" ..\
 Set-Location ..\..\
 cmake -G "Visual Studio 15 2017" -DBUILD_DLL=ON -DBUILD_STATIC=OFF .\
 
-# setup source sdk
-Set-Location ..\source-sdk-cso2
-.\createlauncher.bat
-
 # get back to the project's root
 Set-Location ..\..
