@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{99ACCA4E-8748-4AAF-A38D-36DCD6F95A23}</ProjectGuid>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -74,7 +74,7 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
     </PreBuildEvent>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\public;$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;LAUNCHERONLY;_DLL_EXT=.dll;NO_VCR;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <MinimalRebuild>true</MinimalRebuild>
@@ -92,7 +92,7 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <BrowseInformation />
       <BrowseInformationFile>$(IntDir)</BrowseInformationFile>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <CompileAs>CompileAsCpp</CompileAs>
       <ErrorReporting>Prompt</ErrorReporting>
@@ -104,7 +104,7 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>capstone.lib;PolyHook_2.lib;appframework.lib;tier0.lib;tier1.lib;tier2.lib;tier3.lib;vstdlib.lib;shlwapi.lib;winmm.lib;wsock32.lib;odbc32.lib;odbccp32.lib;dinput8.lib;ddraw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>capstone.lib;PolyHook_2.lib;tier0.lib;vstdlib.lib;shlwapi.lib;winmm.lib;wsock32.lib;odbc32.lib;odbccp32.lib;dinput8.lib;ddraw.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -154,7 +154,7 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\public;$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;LAUNCHERONLY;_DLL_EXT=.dll;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;_ITERATOR_DEBUG_LEVEL=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>Sync</ExceptionHandling>
@@ -171,7 +171,7 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
       <GenerateXMLDocumentationFiles>false</GenerateXMLDocumentationFiles>
       <BrowseInformation />
       <BrowseInformationFile>$(IntDir)</BrowseInformationFile>
-      <WarningLevel>Level4</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>CompileAsCpp</CompileAs>
       <ErrorReporting>Prompt</ErrorReporting>
@@ -182,7 +182,7 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
       <Culture>0x0409</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>capstone.lib;PolyHook_2.lib;appframework.lib;tier0.lib;tier1.lib;tier2.lib;tier3.lib;vstdlib.lib;shlwapi.lib;winmm.lib;wsock32.lib;odbc32.lib;odbccp32.lib;dinput8.lib;ddraw.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>capstone.lib;PolyHook_2.lib;tier0.lib;vstdlib.lib;shlwapi.lib;winmm.lib;wsock32.lib;odbc32.lib;odbccp32.lib;dinput8.lib;ddraw.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>NotSet</ShowProgress>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -229,18 +229,27 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
     <ClCompile Include="..\..\libs\source-sdk-cso2\engine\cso2\optionlist.cpp" />
     <ClCompile Include="..\..\libs\source-sdk-cso2\public\client\cso2\icso2msghandlerclient.cpp" />
     <ClCompile Include="consolethread.cpp" />
-    <ClCompile Include="filesystem_init.cpp" />
-    <ClCompile Include="hooks\client.cpp" />
-    <ClCompile Include="hooks\engine.cpp">
-      <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
-    </ClCompile>
-    <ClCompile Include="hooks\server.cpp" />
     <ClCompile Include="hooks\tier0.cpp" />
-    <ClCompile Include="hooks\vgui2.cpp" />
     <ClCompile Include="hooks\winapi.cpp" />
     <ClCompile Include="launcher.cpp" />
     <ClCompile Include="modulelist.cpp" />
+    <ClCompile Include="PluginLoader.cpp" />
     <ClCompile Include="reslistgenerator.cpp" />
+    <ClCompile Include="sdk\appframework\AppSystemGroup.cpp" />
+    <ClCompile Include="sdk\appframework\WinApp.cpp" />
+    <ClCompile Include="sdk\filesystem_init.cpp" />
+    <ClCompile Include="sdk\sourceapp.cpp" />
+    <ClCompile Include="sdk\tier1\convar.cpp" />
+    <ClCompile Include="sdk\tier1\generichash.cpp" />
+    <ClCompile Include="sdk\tier1\interface.cpp" />
+    <ClCompile Include="sdk\tier1\KeyValues.cpp" />
+    <ClCompile Include="sdk\tier1\strtools.cpp" />
+    <ClCompile Include="sdk\tier1\strtools_unicode.cpp" />
+    <ClCompile Include="sdk\tier1\tier1.cpp" />
+    <ClCompile Include="sdk\tier1\utlbuffer.cpp" />
+    <ClCompile Include="sdk\tier1\utlstring.cpp" />
+    <ClCompile Include="sdk\tier2\tier2.cpp" />
+    <ClCompile Include="sdk\tier3\tier3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\sdk\common\engine_launcher_api.h" />
@@ -267,9 +276,12 @@ xcopy /A /E /K /Y "$(SolutionDir)libs\source-sdk-cso2\lib" "$(SolutionDir)out\li
     <ClInclude Include="..\..\sdk\public\tier0\ICommandLine.h" />
     <ClInclude Include="..\..\sdk\public\tier1\strtools.h" />
     <ClInclude Include="..\..\sdk\public\vstdlib\vstdlib.h" />
-    <ClInclude Include="hooks.h" />
+    <ClInclude Include="..\public\hooks.h" />
     <ClInclude Include="ifilesystem.h" />
+    <ClInclude Include="PluginExports.h" />
+    <ClInclude Include="PluginLoader.h" />
     <ClInclude Include="reslistgenerator.h" />
+    <ClInclude Include="sdk\sourceapp.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

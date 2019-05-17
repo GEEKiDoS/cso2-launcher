@@ -1,9 +1,8 @@
 #pragma once
+#include <array>
 #include <headers/CapstoneDisassembler.hpp>
 #include <headers/Detour/x86Detour.hpp>
 #include <headers/PE/EatHook.hpp>
-#include "modulelist.h"
-#include "onloadlib.h"
 
 #define HOOK_DETOUR_DECLARE(trampoline) static PLH::x86Detour* _##trampoline = nullptr; \
 										static uint64_t _##trampoline##Orig = NULL
@@ -27,11 +26,12 @@
 
 #define HOOK_EXPORT_GET_ORIG(trampoline) ((decltype(&trampoline))_##trampoline##Orig)
 
-template<size_t iDataSize>
-inline void WriteProtectedMemory(uint8_t (&pData)[iDataSize], uintptr_t pDestination)
-{ 
-	DWORD dwOldProtect = NULL;
-	VirtualProtect((void*)pDestination, iDataSize, PAGE_EXECUTE_READWRITE, &dwOldProtect);
-	memcpy((void*)pDestination, pData, iDataSize);
-	VirtualProtect((void*)pDestination, iDataSize, dwOldProtect, &dwOldProtect);
+template <size_t iDataSize>
+inline void WriteProtectedMemory(const std::array<uint8_t, iDataSize>& data,
+	uintptr_t pDestination)
+{
+	PLH::MemoryProtector mp(pDestination, iDataSize,
+		PLH::R | PLH::W | PLH::X);
+	std::copy(data.begin(), data.end(),
+		reinterpret_cast<uint8_t*>(pDestination));
 }

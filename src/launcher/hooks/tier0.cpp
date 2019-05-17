@@ -55,37 +55,19 @@ NOINLINE void hkCOM_TimestampedLog(char const *fmt, ...)
 	s_LastStamp = curStamp;
 }
 
-HOOK_EXPORT_DECLARE(hkMsg);
-
-static char s_szMsgBuffer[512] = { 0 };
-
-NOINLINE void hkMsg(const tchar* pMsg, ...)
+void BytePatchTier(const uintptr_t dwTierBase)
 {
-	if (!g_bPrintMoreDebugInfo)
-		return;
-	
-	va_list va;
-	va_start(va, pMsg);
-	vprintf(pMsg, va);
-	va_end(va);
-}
-
-HOOK_EXPORT_DECLARE(hkWarning);
-
-NOINLINE void hkWarning(const tchar* pMsg, ...)
-{
-	if (!g_bPrintMoreDebugInfo)
-		return;	   
-
-	va_list va;
-	va_start(va, pMsg);
-	vprintf(pMsg, va);
-	va_end(va);
+	//
+	// disable hard coded command line argument check
+	//
+	// jmp near 0x1D8 bytes forward
+	const std::array<uint8_t, 5> addArgPatch = { 0xE9, 0xD8, 0x01, 0x00, 0x00 };
+	WriteProtectedMemory(addArgPatch, (dwTierBase + 0x1D63));
 }
 
 void HookTier0()
-{						
-	HOOK_EXPORT(L"tier0.dll", "COM_TimestampedLog", hkMsg);
-	HOOK_EXPORT(L"tier0.dll", "Msg", hkCOM_TimestampedLog);
-	HOOK_EXPORT(L"tier0.dll", "Warning", hkWarning);
+{					
+	BytePatchTier((uintptr_t)GetModuleHandleA("tier0.dll"));
+
+	HOOK_EXPORT(L"tier0.dll", "COM_TimestampedLog", hkCOM_TimestampedLog);
 }

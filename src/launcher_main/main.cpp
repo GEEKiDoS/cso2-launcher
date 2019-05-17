@@ -1,5 +1,6 @@
 ﻿#include <windows.h>
 #include <stdio.h>
+#include <direct.h>
 
 #include "../githash.h"
 

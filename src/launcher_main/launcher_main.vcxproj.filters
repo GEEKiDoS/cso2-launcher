@@ -20,9 +20,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\launcher\res\launcher.ico">
-      <Filter>Resources</Filter>
-    </Image>
+    <Image Include="res\launcher.ico" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="launcher_main.rc">

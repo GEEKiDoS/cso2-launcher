@@ -61,6 +61,8 @@
 #include "tier0/cso2/messagebox.h"
 #include "tier0/cso2/iprecommandlineparser.h"
 
+#include "PluginLoader.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -72,7 +74,7 @@
 static IEngineAPI *g_pEngineAPI;
 static IHammer *g_pHammer;
 
-bool g_bTextMode = false;
+extern bool g_bTextMode;
 
 static char g_szBasedir[MAX_PATH];
 static char g_szGamedir[MAX_PATH];
@@ -607,211 +609,6 @@ void ReportDirtyDiskNoMaterialSystem()
 }
 
 //-----------------------------------------------------------------------------
-// Instantiate all main libraries
-//-----------------------------------------------------------------------------
-bool CSourceAppSystemGroup::Create()
-{
-	IFileSystem *pFileSystem = (IFileSystem*) FindSystem( FILESYSTEM_INTERFACE_VERSION );
-	pFileSystem->InstallDirtyDiskReportFunc( ReportDirtyDiskNoMaterialSystem );
-
-	CoInitialize( NULL );
-
-	// Are we running in edit mode?
-	m_bEditMode = CommandLine()->CheckParm( "-edit" );
-
-	double st = Plat_FloatTime();
-
-	AppSystemInfo_t appSystems[] =
-	{
-		{ "engine.dll", CVAR_QUERY_INTERFACE_VERSION },	// NOTE: This one must be first!!
-#if defined( _X360 )
-		{ "filesystem_stdio.dll", QUEUEDLOADER_INTERFACE_VERSION },
-#endif
-		{ "inputsystem.dll", INPUTSYSTEM_INTERFACE_VERSION },
-		{ "materialsystem.dll", MATERIAL_SYSTEM_INTERFACE_VERSION },
-		{ "datacache.dll", DATACACHE_INTERFACE_VERSION },
-		{ "datacache.dll", MDLCACHE_INTERFACE_VERSION },
-		{ "datacache.dll", STUDIO_DATA_CACHE_INTERFACE_VERSION },
-		{ "studiorender.dll", STUDIO_RENDER_INTERFACE_VERSION },
-		{ "vphysics.dll", VPHYSICS_INTERFACE_VERSION },
-#if !defined( _X360 )
-		{ "video_services.dll", VIDEO_SERVICES_INTERFACE_VERSION },
-#endif
-		// NOTE: This has to occur before vgui2.dll so it replaces vgui2's surface implementation
-		{ "vguimatsurface.dll", VGUI_SURFACE_INTERFACE_VERSION },
-		{ "vgui2.dll", VGUI_IVGUI_INTERFACE_VERSION },
-		{ "engine.dll", VENGINE_LAUNCHER_API_VERSION },
-
-		{ "", "" }					// Required to terminate the list
-	};
-
-	g_CSO2DocLog.AddMsg( 1, "CreateWinMgr AddSystems" );
-
-	if ( !AddSystems( appSystems ) )
-	{
-		CSO2MessageBox( 0, "System dll loading failed.", "CSO2 Error", NULL );
-		g_CSO2DocLog.AddMsg( 1, "[Error] System dll loading failed." );
-		return false;
-	}
-
-	if ( CommandLine()->FindParm( "-stereosxs" ) )
-	{
-		AddSystem( LoadModule( "headtrack.dll" ), "VHeadTrack001" ); // game isnt shipped with this module, i cant reverse the interface
-	}
-
-	g_CSO2DocLog.AddMsg( 1, "FileSystem_GetFileSystemDLLName" );
-
-	char pFileSystemDLL[MAX_PATH];
-	bool bSteam = false;
-	AppModule_t fileSystemModule = APP_MODULE_INVALID;
-
-	if ( FileSystem_GetFileSystemDLLName( pFileSystemDLL, MAX_PATH, bSteam ) == FS_OK )
-	{
-		fileSystemModule = LoadModule( pFileSystemDLL );
-
-		if ( fileSystemModule != APP_MODULE_INVALID )
-			g_pQueuedLoader = (IQueuedLoader*) AddSystem( fileSystemModule, QUEUEDLOADER_INTERFACE_VERSION );
-	}
-
-	// Hook in datamodel and p4 control if we're running with -tools
-	if ( IsPC() && (CommandLine()->FindParm( "-tools" ) || CommandLine()->FindParm( "-p4" )) )
-	{
-		AppModule_t p4libModule = LoadModule( "p4lib.dll" );
-		p4 = (IP4*) AddSystem( p4libModule, P4_INTERFACE_VERSION );
-		if ( !p4 )
-			return false;
-
-		AppModule_t vstdlibModule = LoadModule( "vstdlib.dll" );
-		IProcessUtils *processUtils = (IProcessUtils*) AddSystem( vstdlibModule, PROCESS_UTILS_INTERFACE_VERSION );
-		if ( !processUtils )
-			return false;
-	}
-
-	g_CSO2DocLog.AddMsg( 1, "pMaterialSystem->SetShaderAPI" );
-
-	// Connect to iterfaces loaded in AddSystems that we need locally
-	IMaterialSystem *pMaterialSystem = (IMaterialSystem*) FindSystem( MATERIAL_SYSTEM_INTERFACE_VERSION );
-	if ( !pMaterialSystem )
-	{
-		g_CSO2DocLog.AddMsg( 1, "[Error] Materials System connection" );
-		return false;
-	}
-
-	g_pEngineAPI = (IEngineAPI*) FindSystem( VENGINE_LAUNCHER_API_VERSION );
-
-	// Load the hammer DLL if we're in editor mode
-	if ( m_bEditMode )
-	{
-		AppModule_t hammerModule = LoadModule( "hammer_dll.dll" );
-		g_pHammer = (IHammer*) AddSystem( hammerModule, INTERFACEVERSION_HAMMER );
-		if ( !g_pHammer )
-		{
-			return false;
-		}
-	}
-
-	// Load up the appropriate shader DLL
-	// This has to be done before connection.
-	char const* pDLLName = "shaderapidx9.dll";
-	if ( CommandLine()->FindParm( "-noshaderapi" ) )
-	{
-		pDLLName = "shaderapiempty.dll";
-	}
-	pMaterialSystem->SetShaderAPI( pDLLName );
-
-	double elapsed = Plat_FloatTime() - st;
-	COM_TimestampedLog( "LoadAppSystems:  Took %.4f secs to load libraries and get factories.", (float) elapsed );
-
-	return true;
-}
-								 
-bool CSourceAppSystemGroup::PreInit()
-{
-	CreateInterfaceFn factory = GetFactory();
-	ConnectTier1Libraries( &factory, 1 );
-	ConVar_Register();
-	ConnectTier2Libraries( &factory, 1 );
-	ConnectTier3Libraries( &factory, 1 );
-
-	if ( !g_pFullFileSystem || !g_pMaterialSystem )
-		return false;
-
-	std::string szDirectoryName = "..\\data\\"; 
-	szDirectoryName += g_pFullFileSystem->GetGameDirectoryName();
-
-	CFSMountContentInfo fsInfo;
-	fsInfo.m_pFileSystem = g_pFullFileSystem;
-	fsInfo.m_bToolsMode = m_bEditMode;
-	fsInfo.m_pDirectoryName = szDirectoryName.c_str();
-	if ( FileSystem_MountContent( fsInfo ) != FS_OK )
-	{
-		g_CSO2DocLog.AddMsg( 1, "[Error] Mount Content" );
-		return false;
-	}
-
-	if ( IsPC() )
-	{
-		// This will get called multiple times due to being here, but only the first one will do anything
-		reslistgenerator->Init( GetBaseDirectory(), CommandLine()->ParmValue( "-game", "hl2" ) );
-
-		// This will also get called each time, but will actually fix up the command line as needed
-		reslistgenerator->SetupCommandLine();
-	}
-
-	// FIXME: Logfiles is mod-specific, needs to move into the engine.
-	g_LogFiles.Init();
-
-	// Required to run through the editor
-	if ( m_bEditMode )
-	{
-		g_pMaterialSystem->EnableEditorMaterials();
-	}
-
-	StartupInfo_t info;
-	info.m_pInstance = GetAppInstance();
-	info.m_pBaseDirectory = GetBaseDirectory();
-	info.m_pInitialMod = DetermineDefaultMod();
-	info.m_pInitialGame = DetermineDefaultGame();
-	info.m_pParentAppSystemGroup = this;
-	info.m_bTextMode = g_bTextMode;
-
-	g_pEngineAPI->SetStartupInfo( info );
-
-	g_pFullFileSystem->AddSearchPath( "cstrike", "GAME" );
-	g_pFullFileSystem->AddSearchPath( "cstrike/bin", "GAMEBIN" );
-
-	return true;
-}
-
-int CSourceAppSystemGroup::Main()
-{
-	return g_pEngineAPI->Run();
-}
-
-void CSourceAppSystemGroup::PostShutdown()
-{
-	// FIXME: Logfiles is mod-specific, needs to move into the engine.
-	g_LogFiles.Shutdown();
-
-	reslistgenerator->Shutdown();
-
-	DisconnectTier3Libraries();
-	DisconnectTier2Libraries();
-	ConVar_Unregister();
-	DisconnectTier1Libraries();
-}
-
-void CSourceAppSystemGroup::Destroy()
-{
-	g_pEngineAPI = NULL;
-	g_pMaterialSystem = NULL;
-	g_pHammer = NULL;
-
-	CoUninitialize();
-}
-
-
-//-----------------------------------------------------------------------------
 // Determines the initial mod to use at load time.
 // We eventually (hopefully) will be able to switch mods at runtime
 // because the engine/hammer integration really wants this feature.
@@ -1037,6 +834,8 @@ extern "C" __declspec(dllexport) int LauncherMain( HINSTANCE hInstance, HINSTANC
 	HookTier0();
 	HookWinapi();
 
+	LoadPlugins();
+
 	g_CSO2DocLog.Create();				
 
 	// Hook the debug output stuff.
@@ -1172,6 +971,8 @@ extern "C" __declspec(dllexport) int LauncherMain( HINSTANCE hInstance, HINSTANC
 	g_LeakDump.m_bCheckLeaks = CommandLine()->CheckParm( "-leakcheck" ) ? true : false;
 
 	_set_SSE2_enable( true );			 	
+
+	InitPlugins();
 
 	bool bRestart = true;
 	while ( bRestart )
