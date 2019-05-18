@@ -19,4 +19,5 @@ extern ICSO2MsgHandlerEngine* g_pCSO2MsgHandler;
 #define MASTER_SERVER_ADDRESS "192.168.1.184"
 #define MASTER_SERVER_PORT 30001
 #define USER_SERVICE_PORT 30100
+
 #define CURL_STATICLIB

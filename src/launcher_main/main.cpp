@@ -48,7 +48,7 @@ bool CreateDebugConsole()
 
 int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {			
-	CreateDebugConsole();
+	//CreateDebugConsole();
 
 	HINSTANCE launcher = LoadLibraryEx( "launcher.dll", NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
 	if ( !launcher )

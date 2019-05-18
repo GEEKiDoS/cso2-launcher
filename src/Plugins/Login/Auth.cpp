@@ -245,14 +245,6 @@ bool Auth_PerformSessionLogin(const char* username, const char* password)
 					curl_easy_cleanup(curl);
 					Auth_Error("Failed to delete user session!");
 					ExitProcess(0x8000D3AD);
-				} 
-				else if(retcode == 409) 
-				{
-					Auth_Error("You already logged in!");
-				}
-				else if (retcode == 400)
-				{
-					Auth_Error("Your username or password is wrong!");
 				}
 			}
 		}
@@ -265,9 +257,18 @@ bool Auth_PerformSessionLogin(const char* username, const char* password)
 				{
 					Auth_Error("You already logged in!");
 				}
-				else if (retcode == 401 || retcode == 400)
+				else if (retcode == 401)
 				{
 					Auth_Error("Server denied your username and password, check them again!");
+				}
+				else if (retcode == 500)
+				{
+					Auth_Error("Server internal error");
+				}
+				else if (retcode == 400)
+				{
+					Auth_Error(va("WTF?\r\nPost url:%s\r\nPost params:%s", surl.str().c_str(), sparams.str().c_str()));
+					throw "WTF that is impossible";
 				}
 			}
 		}
