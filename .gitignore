@@ -409,3 +409,4 @@ out/
 
 # ignore temp build directory
 tmp/
+/libs/curl-7.64.1

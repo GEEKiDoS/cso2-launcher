@@ -1,6 +1,7 @@
 #include <Windows.h>
 
 #include "PluginLoader.h"
+#include "hooks.h"
 
 static bool ListFiles(std::string Path, std::vector<std::string>& Results, const char *Extension = nullptr)
 {
@@ -85,6 +86,11 @@ void PluginExports::Print(std::string str)
 		printf("%s\n", str.c_str());
 	else
 		printf(str.c_str());
+}
+
+CreateInterfaceFn PluginExports::GetFactory(const char * pModuleName)
+{
+	return Sys_GetFactory(pModuleName);
 }
 
 ICvar * PluginExports::GetCVar()

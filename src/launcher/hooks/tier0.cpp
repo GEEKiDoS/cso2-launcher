@@ -5,7 +5,8 @@
 
 extern bool g_bPrintMoreDebugInfo;
 
-HOOK_EXPORT_DECLARE(hkCOM_TimestampedLog);
+static std::unique_ptr<PLH::EatHook> g_pTimestampedHook;
+static uint64_t g_pTimestampedOrig = NULL; // unused but needed by polyhook
 
 NOINLINE void hkCOM_TimestampedLog(char const *fmt, ...)
 {
@@ -66,8 +67,11 @@ void BytePatchTier(const uintptr_t dwTierBase)
 }
 
 void HookTier0()
-{					
-	BytePatchTier((uintptr_t)GetModuleHandleA("tier0.dll"));
+{
+	const uintptr_t dwTierBase = (uintptr_t)GetModuleHandleA("tier0.dll");
+	BytePatchTier(dwTierBase);
 
-	HOOK_EXPORT(L"tier0.dll", "COM_TimestampedLog", hkCOM_TimestampedLog);
+	g_pTimestampedHook = SetupExportHook("COM_TimestampedLog", L"tier0.dll",
+		&hkCOM_TimestampedLog, &g_pTimestampedOrig);
+	g_pTimestampedHook->hook();
 }

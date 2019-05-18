@@ -12,10 +12,15 @@
 #undef UNICODE
 #define NTDDI_VERSION 0x06000000
 #include "stdafx.h"
+#include "CJsonObject.hpp"
+
 #include <wincred.h>
 #include <Shlwapi.h>
 #include <shellapi.h>
-#include "CJsonObject.hpp"
+
+#include <curl/curl.h>
+#include <curl/system.h>
+#include <curl/easy.h>
 
 #include <string>
 #include <fstream>
@@ -64,14 +69,15 @@ bool Auth_DisplayLoginDialog()
 		neb::CJsonObject cfgJson(std::string((std::istreambuf_iterator<char>(config)), std::istreambuf_iterator<char>()));
 		config.close();
 
-		strcpy(username, cfgJson["username"].ToString().c_str());
-		strcpy(password, cfgJson["password"].ToString().c_str());
+		std::string sUsername, sPassword;
 
-		strcpy(g_szUsername, username);
-		strcpy(g_szPassword, password);
+		if (cfgJson.Get("username", sUsername) && cfgJson.Get("password", sPassword)) {
+			strcpy(g_szUsername, sUsername.c_str());
+			strcpy(g_szPassword, sPassword.c_str());
 
-		doneFile = true;
-		return true;
+			doneFile = true;
+			return true;
+		}
 	}
 
 	doneFile = true; //prevent opening file twice on wrong info
@@ -117,16 +123,17 @@ bool Auth_DisplayLoginDialog()
 		strcpy(g_szUsername, username);
 		strcpy(g_szPassword, password);
 
-		std::ofstream configwrite("..\\cso2.json");
+		if (save) {
+			std::ofstream configwrite("..\\cso2.json");
+			if (configwrite) {
+				std::ostringstream sstm;
+				sstm << "{\"username\":\"" << username << "\", \"password\":\"" << password << "\"}";
 
-		if (save && configwrite) {
-			std::ostringstream sstm;
-			sstm << "{\"username\":\"" << username << "\", \"password\":\"" << password << "\"}";
+				auto str = sstm.str();
+				configwrite.write(str.c_str(), str.length());
 
-			auto str = sstm.str();
-			configwrite.write(str.c_str(), str.length());
-
-			configwrite.close();
+				configwrite.close();
+			}
 		}
 	}
 
@@ -142,6 +149,20 @@ void Auth_Error(const char* message)
 	MessageBoxW(NULL, buf, L"Error", MB_OK | MB_ICONSTOP);
 }
 
+static int curlDebug(CURL *, curl_infotype type, char * data, size_t size, void *)
+{
+	if (type == CURLINFO_TEXT)
+	{
+		char text[8192];
+		memcpy(text, data, size);
+		text[size] = '\0';
+
+		OutputDebugString(va("%s\n", text));
+	}
+
+	return 0;
+}
+
 size_t AuthDataReceived(void *ptr, size_t size, size_t nmemb, void *data)
 {
 	if ((strlen((char*)data) + (size * nmemb)) > 8192)
@@ -151,6 +172,115 @@ size_t AuthDataReceived(void *ptr, size_t size, size_t nmemb, void *data)
 
 	strncat((char*)data, (const char*)ptr, size * nmemb);
 	return (size * nmemb);
+}
+
+bool Auth_PerformSessionLogin(const char* username, const char* password)
+{
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	CURL* curl = curl_easy_init();
+
+	if (curl)
+	{
+		std::ostringstream surl;
+		surl << "http://" << MASTER_SERVER_ADDRESS << ":" << USER_SERVICE_PORT << "/users/session";
+
+		std::ostringstream sparams;
+		sparams << "username=" << g_szUsername << "&password=" << g_szPassword;
+
+		char buf[8192] = { 0 };
+
+		//struct curl_slist* headerlist = curl_slist_append(headerlist, "Content-Type:application/x-www-form-urlencoded");
+		//curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
+
+		curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str());
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, AuthDataReceived);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&buf);
+		curl_easy_setopt(curl, CURLOPT_USERAGENT, "CSO2_LOGIN");
+		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
+		curl_easy_setopt(curl, CURLOPT_POST, 1);
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, sparams.str().c_str());
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+		curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, curlDebug);
+
+		CURLcode code = curl_easy_perform(curl);
+		
+		
+		if (code == CURLE_OK)
+		{
+			long retcode = 0;
+			if (curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &retcode) == CURLE_OK) 
+			{
+				if (retcode == 201 || retcode == 200)
+				{
+					neb::CJsonObject retJson(buf);
+					std::ostringstream sdelparams;
+					sdelparams << "userId=" << retJson["userId"].ToString().c_str();
+
+					curl_easy_cleanup(curl);
+					curl = curl_easy_init();
+
+					curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str());
+					curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+					curl_easy_setopt(curl, CURLOPT_POSTFIELDS, sdelparams.str().c_str());
+					curl_easy_setopt(curl, CURLOPT_USERAGENT, "CSO2_LOGIN");
+					curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
+					curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+
+					code = curl_easy_perform(curl);
+					if (code == CURLE_OK)
+					{
+						if (curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &retcode) == CURLE_OK) 
+						{
+							if (retcode == 200)
+							{
+								curl_easy_cleanup(curl);
+								curl_global_cleanup();
+								return true;
+							}
+						}
+					}
+
+					curl_easy_cleanup(curl);
+					Auth_Error("Failed to delete user session!");
+					ExitProcess(0x8000D3AD);
+				} 
+				else if(retcode == 409) 
+				{
+					Auth_Error("You already logged in!");
+				}
+				else if (retcode == 400)
+				{
+					Auth_Error("Your username or password is wrong!");
+				}
+			}
+		}
+		else if (code == 0x16)
+		{
+			long retcode = 0;
+			if (curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &retcode) == CURLE_OK)
+			{
+				if (retcode == 409)
+				{
+					Auth_Error("You already logged in!");
+				}
+				else if (retcode == 401 || retcode == 400)
+				{
+					Auth_Error("Server denied your username and password, check them again!");
+				}
+			}
+		}
+		else Auth_Error(va("Could not reach the cso2 server. Error code from CURL: %x.", code));
+
+		curl_easy_cleanup(curl);
+		curl_global_cleanup();
+
+		return false;
+	}
+
+	curl_global_cleanup();
+	return false;
 }
 
 #pragma optimize("", off)
@@ -164,6 +294,10 @@ void Auth_VerifyIdentity()
 
 		if (!canceled)
 		{
+			if (!Auth_PerformSessionLogin(g_szUsername, g_szPassword))
+			{
+				continue;
+			}
 			return;
 		}
 	}

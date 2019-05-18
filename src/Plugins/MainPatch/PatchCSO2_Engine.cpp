@@ -7,26 +7,21 @@
 
 #include <hooks.h>
 
+#pragma optimize( "", off )
 using namespace std::literals::string_literals;
-
-HOOK_DETOUR_DECLARE(hkCon_ColorPrint);
-NOINLINE void __fastcall hkCon_ColorPrint(Color &clr, const char *msg)
-{
-	g_pImports->Print(msg);
-
-	return HOOK_DETOUR_GET_ORIG(hkCon_ColorPrint)(clr, msg);
-}
 
 //
 // Restore original CanCheat check
 // This fixes the use of sv_cheats as a host
 // Credit goes to GEEKiDoS
 //
-ConVar* sv_cheats = nullptr;
 
+ConVar* sv_cheats = nullptr;
 ICvar *g_pCVar = nullptr;
 
-HOOK_DETOUR_DECLARE(hkCanCheat);
+static std::unique_ptr<PLH::x86Detour> g_pCanCheatHook;
+static uint64_t g_CanCheatOrig = NULL;
+
 NOINLINE bool __fastcall hkCanCheat()
 {
 	if (g_pCVar == nullptr)
@@ -41,6 +36,16 @@ NOINLINE bool __fastcall hkCanCheat()
 	return sv_cheats->GetBool();
 }
 
+static std::unique_ptr<PLH::x86Detour> g_pColorPrintHook;
+static uint64_t g_ColorPrintOrig = NULL;
+
+NOINLINE void __fastcall hkCon_ColorPrint(Color& clr, const char* msg)
+{
+	g_pImports->Print(msg);
+
+	return PLH::FnCast(g_ColorPrintOrig, &hkCon_ColorPrint)(clr, msg);
+}
+
 void BytePatchEngine(const uintptr_t dwEngineBase)
 {
 	//
@@ -49,57 +54,6 @@ void BytePatchEngine(const uintptr_t dwEngineBase)
 	// jmp short 0x3C bytes forward
 	const std::array<uint8_t, 5> btPatch = { 0xEB, 0x3C };
 	WriteProtectedMemory(btPatch, (dwEngineBase + 0x15877B));
-
-	//
-	// skip nexon messenger login
-	//
-	// mov al, 1; retn 8
-	const std::array<uint8_t, 5> nmPatch = { 0xB0, 0x01, 0xC2, 0x08, 0x00 };
-	WriteProtectedMemory(nmPatch, (dwEngineBase + 0x289490));
-
-	//
-	// copy the password instead of a null string
-	//
-	// push edi; nops
-	const std::array<uint8_t, 5> loginNMPatch = { 0x57, 0x90, 0x90, 0x90,
-												  0x90 };
-	WriteProtectedMemory(loginNMPatch, (dwEngineBase + 0x284786));
-
-	//
-	// don't null the username string
-	//
-	const std::array<uint8_t, 20> loginNMPatch2 = {
-		0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,  // nops
-		0x8B, 0x44, 0x24, 0x64,  // mov eax, [esp+64]
-		0x8D, 0x4C, 0x24, 0x54,  // lea ecx, [esp+54]
-		0x90, 0x90, 0x90         // nops
-	};
-	WriteProtectedMemory(loginNMPatch2, (dwEngineBase + 0x28499D));
-
-	//
-	// don't clear password string
-	// TODO: this is DANGEROUS! find a better way to fix this!
-	//
-	// nops
-	const std::array<uint8_t, 14> loginNMPatch3 = { 0x90, 0x90, 0x90, 0x90,
-													0x90, 0x90, 0x90, 0x90,
-													0x90, 0x90, 0x90, 0x90,
-													0x90, 0x90 };
-	WriteProtectedMemory(loginNMPatch3, dwEngineBase + 0x2849CB);
-
-	//
-	// don't allow nexon messenger to ovewrite our password
-	//
-	// nops
-	const std::array<uint8_t, 10> loginNMPatch4 = {
-		0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90
-	};
-	WriteProtectedMemory(loginNMPatch4, (dwEngineBase + 0x284A22));
-
-	//
-	// don't get the nexon username from NM
-	//
-	WriteProtectedMemory(loginNMPatch4, (dwEngineBase + 0x284A57));
 
 	//
 	// reenable UDP info packet
@@ -126,17 +80,6 @@ void BytePatchEngine(const uintptr_t dwEngineBase)
 	WriteProtectedMemory(relayPatch3, (dwEngineBase + 0x2BE587));
 
 	//
-	// don't send the filesystem hash
-	// stops the weird blinking when you login,
-	// but you don't get any client hash in the master server
-	//
-	// nops
-	const std::array<uint8_t, 11> hashGenPatch = {
-		0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
-	};
-	WriteProtectedMemory(hashGenPatch, (dwEngineBase + 0x2BC50D));
-
-	//
 	// always return true when checking if the user is over 18
 	//
 	// mov al, 01
@@ -158,7 +101,6 @@ void BytePatchEngine(const uintptr_t dwEngineBase)
 	WriteProtectedMemory(canCheatPatch2, (dwEngineBase + 0x19F4D2));
 }
 
-#pragma optimize( "", off )
 void PatchCSO2_Engine(uintptr_t dwEngineBase)
 {
 	static bool loaded = false;
@@ -170,9 +112,16 @@ void PatchCSO2_Engine(uintptr_t dwEngineBase)
 
 	BytePatchEngine(dwEngineBase);
 
-	HOOK_DETOUR(dwEngineBase + 0x1C4B40, hkCon_ColorPrint);
-	HOOK_DETOUR(dwEngineBase + 0xCE8B0, hkCanCheat);
+	PLH::CapstoneDisassembler dis(PLH::Mode::x86);
 
+	g_pCanCheatHook = SetupDetourHook(dwEngineBase + 0xCE8B0, &hkCanCheat,
+		&g_CanCheatOrig, dis);
+
+	g_pColorPrintHook = SetupDetourHook(
+		dwEngineBase + 0x1C4B40, &hkCon_ColorPrint, &g_ColorPrintOrig, dis);
+
+	g_pCanCheatHook->hook();
+	g_pColorPrintHook->hook();
 	loaded = true;
 }
 #pragma optimize( "", on )

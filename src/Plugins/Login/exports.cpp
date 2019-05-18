@@ -16,8 +16,6 @@ void PatchCSO2_Client(uintptr_t dwClientBase);
 
 void OnLibLoaded(std::string libName, uintptr_t dwLibraryBase)
 {
-	g_pImports->Print(va("%s loaded at %llx", libName.c_str(), dwLibraryBase));
-
 	if (libList[0].compare(libName) == 0)
 	{
 		PatchCSO2_Engine(dwLibraryBase);
@@ -28,8 +26,8 @@ void OnLibLoaded(std::string libName, uintptr_t dwLibraryBase)
 	}
 }
 
-char g_szUsername[CREDUI_MAX_USERNAME_LENGTH];
-char g_szPassword[CREDUI_MAX_PASSWORD_LENGTH];
+char g_szUsername[CREDUI_MAX_USERNAME_LENGTH] = "UnknownPlayer";
+char g_szPassword[CREDUI_MAX_PASSWORD_LENGTH] = "default";
 void Auth_VerifyIdentity();
 
 extern "C" {

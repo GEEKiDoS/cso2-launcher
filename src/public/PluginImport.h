@@ -7,6 +7,7 @@ class PluginImports {
 public:
 	virtual void RegisterLoadLibCallbacks(std::string *libNames, int numLibs, OnLoaded_t callback) = 0;
 	virtual void Print(std::string str) = 0;
+	virtual CreateInterfaceFn GetFactory(const char *pModuleName) = 0;
 	virtual ICvar *GetCVar() = 0;
 };
 

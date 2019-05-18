@@ -57,4 +57,9 @@
       <Filter>源文件\Patches</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\..\..\libs\curl-7.64.1\builds\libcurl-vc-x86-release-static-ipv6-sspi-winssl\lib\libcurl_a.lib">
+      <Filter>资源文件</Filter>
+    </Library>
+  </ItemGroup>
 </Project>

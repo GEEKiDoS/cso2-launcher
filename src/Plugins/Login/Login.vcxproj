@@ -102,7 +102,7 @@
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;MAINPATCH_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src\public;$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\public;$(SolutionDir)libs\curl-7.64.1\builds\libcurl-vc-x86-release-static-ipv6-sspi-winssl\include;$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
@@ -110,7 +110,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>tier0.lib;vstdlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tier0.lib;vstdlib.lib;ws2_32.lib;wldap32.lib;Crypt32.lib;Normaliz.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -121,13 +121,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;MAINPATCH_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)src\public;$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\public;$(SolutionDir)libs\curl-7.64.1\builds\libcurl-vc-x86-release-static-ipv6-sspi-winssl\include;$(ProjectDir);$(SolutionDir)libs\source-sdk-cso2;$(SolutionDir)libs\source-sdk-cso2\common;$(SolutionDir)libs\source-sdk-cso2\public;$(SolutionDir)libs\source-sdk-cso2\public\tier0;$(SolutionDir)libs\source-sdk-cso2\public\tier1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>tier0.lib;vstdlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>tier0.lib;vstdlib.lib;ws2_32.lib;wldap32.lib;Crypt32.lib;Normaliz.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -193,6 +193,9 @@
     <ProjectReference Include="..\..\..\libs\PolyHook_2_0\PolyHook_2.vcxproj">
       <Project>{495a7c4e-d0d5-3895-9379-c2fd9eec7e73}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\..\..\libs\curl-7.64.1\builds\libcurl-vc-x86-release-static-ipv6-sspi-winssl\lib\libcurl_a.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,8 +15,6 @@ void PatchCSO2_VGUI2(uintptr_t dwVguiBase);
 
 void OnLibLoaded(std::string libName, uintptr_t dwLibraryBase)
 {
-	g_pImports->Print(va("%s loaded at %llx", libName.c_str(), dwLibraryBase));
-
 	if (libList[0].compare(libName) == 0)
 	{
 		PatchCSO2_Engine(dwLibraryBase);

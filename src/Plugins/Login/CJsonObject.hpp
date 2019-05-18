@@ -135,9 +135,10 @@ public:     // method of json array
 private:
     CJsonObject(cJSON* pJsonData);
 
-private:
+public:
     cJSON* m_pJsonData;
     cJSON* m_pExternJsonDataRef;
+private:
     std::string m_strErrMsg;
     std::map<unsigned int, CJsonObject*> m_mapJsonArrayRef;
     std::map<std::string, CJsonObject*> m_mapJsonObjectRef;

@@ -2,19 +2,20 @@
 #include <wincred.h>
 #include "hooks.h"
 
+#pragma optimize( "", off )
 extern char g_szUsername[CREDUI_MAX_USERNAME_LENGTH];
 extern char g_szPassword[CREDUI_MAX_PASSWORD_LENGTH];
 
-HOOK_DETOUR_DECLARE(hkCSO2UIManager_InitMainUI);
+static std::unique_ptr<PLH::x86Detour> g_pInitUIHook;
+static uint64_t g_InitUIOrig = NULL;
+
 NOINLINE bool __fastcall hkCSO2UIManager_InitMainUI(void* ecx, void* edx)
 {
 	g_pCSO2MsgHandler->Login(g_szUsername, g_szPassword, g_szUsername);
-	
-	return HOOK_DETOUR_GET_ORIG(hkCSO2UIManager_InitMainUI)(ecx, edx);
+
+	return PLH::FnCast(g_InitUIOrig, &hkCSO2UIManager_InitMainUI)(ecx, edx);
 }
 
-
-#pragma optimize( "", off )
 void PatchCSO2_Client(uintptr_t dwClientBase)
 {
 	static bool loaded = false;
@@ -24,7 +25,11 @@ void PatchCSO2_Client(uintptr_t dwClientBase)
 
 	g_pImports->Print("Login - Appling client patches. ");
 
-	HOOK_DETOUR(dwClientBase + 0xAE4610, hkCSO2UIManager_InitMainUI);
+	PLH::CapstoneDisassembler dis(PLH::Mode::x86);
+
+	g_pInitUIHook =
+		SetupDetourHook(dwClientBase + 0xAE4610, &hkCSO2UIManager_InitMainUI, &g_InitUIOrig, dis);
+	g_pInitUIHook->hook();
 
 	loaded = true;
 }
