@@ -174,6 +174,32 @@ size_t AuthDataReceived(void *ptr, size_t size, size_t nmemb, void *data)
 	return (size * nmemb);
 }
 
+std::wstring AsciiToUnicode(const std::string& str)
+{
+	int unicodeLen = MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, nullptr, 0);
+	wchar_t *pUnicode = (wchar_t*)malloc(sizeof(wchar_t)*unicodeLen);
+	MultiByteToWideChar(CP_ACP, 0, str.c_str(), -1, pUnicode, unicodeLen);
+	std::wstring ret_str = pUnicode;
+	free(pUnicode);
+	return ret_str;
+}
+
+std::string UnicodeToUtf8(const std::wstring& wstr)
+{  
+	int ansiiLen = WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	char *pAssii = (char*)malloc(sizeof(char)*ansiiLen);
+	WideCharToMultiByte(CP_UTF8, 0, wstr.c_str(), -1, pAssii, ansiiLen, nullptr, nullptr);
+	std::string ret_str = pAssii;
+	free(pAssii);
+	return ret_str;
+}
+
+
+std::string AsciiToUtf8(const std::string& str)
+{
+	return UnicodeToUtf8(AsciiToUnicode(str));
+}
+
 bool Auth_PerformSessionLogin(const char* username, const char* password)
 {
 	curl_global_init(CURL_GLOBAL_ALL);
@@ -185,21 +211,23 @@ bool Auth_PerformSessionLogin(const char* username, const char* password)
 		std::ostringstream surl;
 		surl << "http://" << MASTER_SERVER_ADDRESS << ":" << USER_SERVICE_PORT << "/users/session";
 
-		std::ostringstream sparams;
-		sparams << "username=" << g_szUsername << "&password=" << g_szPassword;
+		char jsonToSend[128] = { 0 };
+		snprintf(jsonToSend, 128, "{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
+
+		auto utf8Json = AsciiToUtf8(jsonToSend);
 
 		char buf[8192] = { 0 };
 
-		//struct curl_slist* headerlist = curl_slist_append(headerlist, "Content-Type:application/x-www-form-urlencoded");
-		//curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
-
+		auto headers = curl_slist_append(NULL, "Content-Type:application/json;charset=UTF-8");
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+		curl_easy_setopt(curl, CURLOPT_POST, 1);
 		curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, AuthDataReceived);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)&buf);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "CSO2_LOGIN");
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, true);
 		curl_easy_setopt(curl, CURLOPT_POST, 1);
-		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, sparams.str().c_str());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, utf8Json.c_str());
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 		curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, curlDebug);
@@ -267,7 +295,7 @@ bool Auth_PerformSessionLogin(const char* username, const char* password)
 				}
 				else if (retcode == 400)
 				{
-					Auth_Error(va("WTF?\r\nPost url:%s\r\nPost params:%s", surl.str().c_str(), sparams.str().c_str()));
+					Auth_Error(va("WTF?\r\nPost url:%s\r\nPost json:%s", surl.str().c_str(), jsonToSend));
 					throw "WTF that is impossible";
 				}
 			}

@@ -100,6 +100,14 @@ void BytePatchEngine(const uintptr_t dwEngineBase)
 		0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
 	};
 	WriteProtectedMemory(hashGenPatch, (dwEngineBase + 0x2BC50D));
+
+	//
+	// Replace event images
+	//
+	DWORD dwOldProtect = NULL;
+	VirtualProtect((void*)(dwEngineBase + 0x2879AA), 4, PAGE_EXECUTE_READWRITE, &dwOldProtect);
+	*(DWORD *)(dwEngineBase + 0x2879AA) = (DWORD)SERVER_EVENT_URL;
+	VirtualProtect((void*)(dwEngineBase + 0x2879AA), 4, dwOldProtect, &dwOldProtect);
 }
 
 ICSO2MsgHandlerEngine* g_pCSO2MsgHandler;

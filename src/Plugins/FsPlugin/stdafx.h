@@ -11,15 +11,5 @@
 // Windows 头文件
 #include <windows.h>
 #include <PluginImport.h>
-#include "engine/cso2/icso2msgmanager.h"
 
 extern PluginImports *g_pImports;
-extern ICSO2MsgHandlerEngine* g_pCSO2MsgHandler;
-
-#define MASTER_SERVER_ADDRESS "192.168.1.184"
-#define SERVER_EVENT_URL L"http://127.0.0.1:8080/static/notice/"
-
-#define MASTER_SERVER_PORT 30001
-#define USER_SERVICE_PORT 30100
-
-#define CURL_STATICLIB
