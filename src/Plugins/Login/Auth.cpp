@@ -202,6 +202,8 @@ std::string AsciiToUtf8(const std::string& str)
 
 bool Auth_PerformSessionLogin(const char* username, const char* password)
 {
+	bool bReturn = false;
+
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	CURL* curl = curl_easy_init();
@@ -209,7 +211,7 @@ bool Auth_PerformSessionLogin(const char* username, const char* password)
 	if (curl)
 	{
 		std::ostringstream surl;
-		surl << "http://" << MASTER_SERVER_ADDRESS << ":" << USER_SERVICE_PORT << "/users/session";
+		surl << "http://" << WEBAPP_ADDRESS << ":" << WEBAPP_PORT << "/do_login";
 
 		char jsonToSend[128] = { 0 };
 		snprintf(jsonToSend, 128, "{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
@@ -234,82 +236,28 @@ bool Auth_PerformSessionLogin(const char* username, const char* password)
 
 		CURLcode code = curl_easy_perform(curl);
 		
-		
 		if (code == CURLE_OK)
 		{
-			long retcode = 0;
-			if (curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &retcode) == CURLE_OK) 
+			std::string ret(buf);
+			if (ret.substr(22, ret.size() - 22) == "/user")
 			{
-				if (retcode == 201 || retcode == 200)
-				{
-					neb::CJsonObject retJson(buf);
-					std::ostringstream sdelparams;
-					sdelparams << "userId=" << retJson["userId"].ToString().c_str();
-
-					curl_easy_cleanup(curl);
-					curl = curl_easy_init();
-
-					curl_easy_setopt(curl, CURLOPT_URL, surl.str().c_str());
-					curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-					curl_easy_setopt(curl, CURLOPT_POSTFIELDS, sdelparams.str().c_str());
-					curl_easy_setopt(curl, CURLOPT_USERAGENT, "CSO2_LOGIN");
-					curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-					curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-
-					code = curl_easy_perform(curl);
-					if (code == CURLE_OK)
-					{
-						if (curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &retcode) == CURLE_OK) 
-						{
-							if (retcode == 200)
-							{
-								curl_easy_cleanup(curl);
-								curl_global_cleanup();
-								return true;
-							}
-						}
-					}
-
-					curl_easy_cleanup(curl);
-					Auth_Error("Failed to delete user session!");
-					ExitProcess(0x8000D3AD);
-				}
+				bReturn = true;
+			}
+			else
+			{
+				Auth_Error("Server denied your username and password, check them again!");
 			}
 		}
-		else if (code == 0x16)
+		else
 		{
-			long retcode = 0;
-			if (curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &retcode) == CURLE_OK)
-			{
-				if (retcode == 409)
-				{
-					Auth_Error("You already logged in!");
-				}
-				else if (retcode == 401)
-				{
-					Auth_Error("Server denied your username and password, check them again!");
-				}
-				else if (retcode == 500)
-				{
-					Auth_Error("Server internal error");
-				}
-				else if (retcode == 400)
-				{
-					Auth_Error(va("WTF?\r\nPost url:%s\r\nPost json:%s", surl.str().c_str(), jsonToSend));
-					throw "WTF that is impossible";
-				}
-			}
+			Auth_Error(va("Could not reach the cso2 server. Error code from CURL: %x.", code));
 		}
-		else Auth_Error(va("Could not reach the cso2 server. Error code from CURL: %x.", code));
 
 		curl_easy_cleanup(curl);
-		curl_global_cleanup();
-
-		return false;
 	}
 
 	curl_global_cleanup();
-	return false;
+	return bReturn;
 }
 
 #pragma optimize("", off)

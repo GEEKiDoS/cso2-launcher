@@ -17,9 +17,11 @@ extern PluginImports *g_pImports;
 extern ICSO2MsgHandlerEngine* g_pCSO2MsgHandler;
 
 #define MASTER_SERVER_ADDRESS "192.168.1.184"
-#define SERVER_EVENT_URL L"http://127.0.0.1:8080/static/notice/"
+#define WEBAPP_ADDRESS "127.0.0.1"
+#define SERVER_EVENT_URL L"http://" WEBAPP_ADDRESS ":8080/static/notice/" 
 
 #define MASTER_SERVER_PORT 30001
 #define USER_SERVICE_PORT 30100
+#define WEBAPP_PORT 8080
 
 #define CURL_STATICLIB
